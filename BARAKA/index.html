@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Baraka ERP - Unified Business Management</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Chart.js for beautiful interactive charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons for high-quality SVG icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        // Only clear old storage if data version is outdated
+        const REQUIRED_DATA_VERSION = 11;
+        const storedState = localStorage.getItem('baraka_erp_state');
+        if (storedState) {
+            try {
+                const parsed = JSON.parse(storedState);
+                if (!parsed.dataVersion || parsed.dataVersion < REQUIRED_DATA_VERSION) {
+                    console.log('Updating to new data version...');
+                    localStorage.clear();
+                    sessionStorage.clear();
+                }
+            } catch (e) {
+                localStorage.clear();
+                sessionStorage.clear();
+            }
+        }
+    </script>
+</head>
+<body>
+    <!-- Background visual elements -->
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+    <div class="glow-orb orb-3"></div>
+
+    <!-- 1. AUTHENTICATION CONTAINER (LOGIN PAGE) -->
+    <div id="auth-page" class="auth-container">
+        <div class="glass-panel auth-card">
+            <div class="logo-header">
+                <img src="img/Baraka Stores-.png" alt="Baraka Stores Logo" style="height: 80px; margin-bottom: 16px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));">
+                <h1>Baraka Stores</h1>
+                <p>Select your account profile to log in</p>
+            </div>
+
+            <div class="role-selector">
+                <button type="button" class="role-btn alice-btn" onclick="selectRole('alice')">
+                    <div class="role-icon-wrapper">
+                        <i data-lucide="shield-check"></i>
+                    </div>
+                    <div class="role-info">
+                        <h3>Admin</h3>
+                        <p>Management & Financial Analysis</p>
+                    </div>
+                </button>
+
+                <button type="button" class="role-btn uniforms-btn" onclick="selectRole('uniforms')">
+                    <div class="role-icon-wrapper">
+                        <i data-lucide="shirt"></i>
+                    </div>
+                    <div class="role-info">
+                        <h3>Baraka Uniforms</h3>
+                        <p>Stock, Sales & Daily Logs</p>
+                    </div>
+                </button>
+
+                <button type="button" class="role-btn utensils-btn" onclick="selectRole('utensils')">
+                    <div class="role-icon-wrapper">
+                        <i data-lucide="soup"></i>
+                    </div>
+                    <div class="role-info">
+                        <h3>Baraka Utensils</h3>
+                        <p>Stock, Sales & Daily Logs</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Login form (dynamic color themes based on selected role) -->
+            <form id="login-form" class="auth-form" onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label for="password-input">Security Password</label>
+                    <input type="password" id="password-input" class="input-field" placeholder="Enter password" required>
+                    <span id="password-hint" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px;"></span>
+                </div>
+                <button type="submit" id="login-submit-btn" class="btn-primary">
+                    Login securely <i data-lucide="arrow-right"></i>
+                </button>
+                <div style="margin-top: 20px; text-align: center;">
+                    <a href="store.html" style="color: var(--accent-uniforms); text-decoration: none; font-weight: 700; display: inline-flex; align-items: center; gap: 8px;">
+                        <i data-lucide="shopping-bag"></i> Visit Baraka Stores
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 2. MAIN SYSTEM DASHBOARD WRAPPER -->
+    <div id="system-dashboard" class="dashboard-wrapper">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div>
+                <div class="sidebar-brand">
+                    <img src="img/Baraka Stores_transparent-.png" alt="Baraka Stores Logo" style="height: 40px; margin-right: 10px;">
+                    <div class="sidebar-brand-name">Baraka Stores</div>
+                </div>
+
+                <nav class="sidebar-menu">
+                    <!-- Management Links (Alice Only) -->
+                    <a id="nav-alice-dashboard" class="sidebar-link alice-link active" onclick="switchTab('alice-dashboard')">
+                        <i data-lucide="pie-chart"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a id="nav-alice-expenses" class="sidebar-link alice-link" onclick="switchTab('alice-expenses')">
+                        <i data-lucide="wallet"></i>
+                        <span>Expenses Tracker</span>
+                    </a>
+                    <a id="nav-alice-pl" class="sidebar-link alice-link" onclick="switchTab('alice-pl')">
+                        <i data-lucide="receipt"></i>
+                        <span>Profit & Loss</span>
+                    </a>
+                    <a id="nav-alice-peak" class="sidebar-link alice-link" onclick="switchTab('alice-peak')">
+                        <i data-lucide="calendar-days"></i>
+                        <span>Peak Seasons</span>
+                    </a>
+
+                    <!-- Shared / Staff Inventory Link (All accounts) -->
+                    <a id="nav-shared-inventory" class="sidebar-link" onclick="switchTab('shared-inventory')">
+                        <i data-lucide="package"></i>
+                        <span>Stock Catalogue</span>
+                    </a>
+
+                    <!-- Staff Sales Links (Staff accounts) -->
+                    <a id="nav-staff-sales" class="sidebar-link" onclick="switchTab('staff-sales')">
+                        <i data-lucide="shopping-cart"></i>
+                        <span>Record Sales</span>
+                    </a>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-profile-bar">
+                    <div id="user-profile-avatar" class="user-avatar">A</div>
+                    <div class="user-details">
+                        <h4 id="user-profile-name">Admin</h4>
+                        <p id="user-profile-role">Management</p>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="handleLogout()">
+                    <i data-lucide="log-out"></i>
+                    <span>Log Out</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard View Container -->
+        <main class="main-content">
+            <!-- Low Stock Alert Banner (visible on Alice dashboard if triggered) -->
+            <div id="low-stock-banner" class="alerts-banner">
+                <div class="alerts-banner-icon">
+                    <i data-lucide="alert-triangle"></i>
+                </div>
+                <div class="alerts-banner-content">
+                    <h4>Critical Inventory Alerts Detected</h4>
+                    <ul id="low-stock-banner-list">
+                        <!-- Filled dynamically by JavaScript -->
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Page Title Header -->
+            <header class="content-header flex-row-center" style="flex-wrap: wrap; gap: 16px;">
+                <div>
+                    <h2 id="page-welcome-title">Welcome Back, Alice</h2>
+                    <p id="page-subtitle">Here is the consolidated business overview for Baraka operations.</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <div id="staff-clock-controls" style="display: none;">
+                        <button id="btn-clock-in" class="btn-primary uniforms-btn-submit" style="padding: 8px 16px; font-size: 0.85rem;" onclick="handleClockIn()">
+                            <i data-lucide="log-in"></i> Clock In
+                        </button>
+                        <button id="btn-clock-out" class="btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; display: none;" onclick="handleClockOut()">
+                            <i data-lucide="log-out"></i> Clock Out
+                        </button>
+                    </div>
+                    <div id="current-date-badge" class="badge badge-success" style="padding: 10px 16px; font-size: 0.85rem; border-radius: 8px;">
+                        Date: June 10, 2026
+                    </div>
+                </div>
+            </header>
+
+            <!-- TAB 1: ALICE DASHBOARD (ANALYTICS & KPI) -->
+            <section id="tab-alice-dashboard" class="tab-panel active">
+                <div class="alice-dashboard-layout">
+                    <!-- KPI Cards Row -->
+                    <div class="grid-4">
+                        <div class="glass-panel kpi-card">
+                            <div class="kpi-details">
+                                <h5>Total Revenue</h5>
+                                <h3 id="kpi-total-revenue">$0.00</h3>
+                            </div>
+                            <div class="kpi-icon kpi-alice-rev">
+                                <i data-lucide="trending-up"></i>
+                            </div>
+                        </div>
+                        <div class="glass-panel kpi-card">
+                            <div class="kpi-details">
+                                <h5>Total Expenses</h5>
+                                <h3 id="kpi-total-expenses">$0.00</h3>
+                            </div>
+                            <div class="kpi-icon kpi-alice-exp">
+                                <i data-lucide="trending-down"></i>
+                            </div>
+                        </div>
+                        <div class="glass-panel kpi-card">
+                            <div class="kpi-details">
+                                <h5>Net Profit</h5>
+                                <h3 id="kpi-net-profit">$0.00</h3>
+                            </div>
+                            <div class="kpi-icon kpi-alice-prof">
+                                <i data-lucide="dollar-sign"></i>
+                            </div>
+                        </div>
+                        <div class="glass-panel kpi-card">
+                            <div class="kpi-details">
+                                <h5>Profit Margin</h5>
+                                <h3 id="kpi-profit-margin">0.0%</h3>
+                            </div>
+                            <div class="kpi-icon kpi-alice-margin">
+                                <i data-lucide="percent"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Notifications Panel -->
+                    <div class="glass-panel" style="margin-bottom: 24px;">
+                        <div class="flex-row-center" style="margin-bottom: 16px;">
+                            <h3 class="chart-title">Staff Attendance Notifications</h3>
+                            <span class="badge badge-warning" id="unread-notif-count">0 New</span>
+                        </div>
+                        <div id="notifications-list" class="revenue-log-list">
+                            <!-- Notifications will be rendered here -->
+                        </div>
+                    </div>
+
+                    <!-- Filter Controls & Variances -->
+                    <div class="glass-panel">
+                        <div class="flex-row-center" style="margin-bottom: 20px; flex-wrap: wrap; gap: 16px;">
+                            <div>
+                                <h3 class="chart-title">Financial Trends</h3>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem;">Select aggregation interval to view variances</p>
+                            </div>
+                            <div class="controls-row" style="margin-bottom: 0;">
+                                <select id="variance-selector" class="select-dropdown" onchange="updateChartsAndKPIs()">
+                                    <option value="daily">Daily Variance (Last 7 Days)</option>
+                                    <option value="weekly" selected>Weekly Variance (Last 12 Weeks)</option>
+                                    <option value="monthly">Monthly Variance (Last 12 Months)</option>
+                                    <option value="annually">Annual Variance (Comparison)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 24px;">
+                            <!-- Main Trend Chart -->
+                            <div class="chart-container" style="height: 350px;">
+                                <canvas id="revenueExpensesChart"></canvas>
+                            </div>
+                            <!-- Breakdown by Shop -->
+                            <div class="chart-container" style="height: 350px;">
+                                <canvas id="shopShareChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Secondary layout widgets -->
+                    <div class="grid-2">
+                        <!-- Revenue Ledger List -->
+                        <div class="glass-panel">
+                            <div class="flex-row-center" style="margin-bottom: 16px;">
+                                <h3 class="chart-title">Recent Transactions</h3>
+                                <i data-lucide="activity" style="color: var(--accent-alice)"></i>
+                            </div>
+                            <div id="recent-sales-log" class="revenue-log-list">
+                                <!-- Log generated dynamically -->
+                            </div>
+                        </div>
+
+                        <!-- Low Stock alerts overview -->
+                        <div class="glass-panel">
+                            <div class="flex-row-center" style="margin-bottom: 16px;">
+                                <h3 class="chart-title">Stock Alert Center</h3>
+                                <span class="badge badge-danger" id="low-stock-count-badge">0 Alerts</span>
+                            </div>
+                            <div class="revenue-log-list" id="stock-alerts-list-center">
+                                <!-- Detailed alerts list loaded dynamically -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: STOCK CATALOGUE (SHARED & ROLE-BASED VISIBILITY) -->
+            <section id="tab-shared-inventory" class="tab-panel">
+                <div class="glass-panel">
+                    <div class="flex-row-center" style="margin-bottom: 24px; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h3 class="chart-title" id="inventory-title">Stock Catalogue</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;" id="inventory-subtitle">View and manage catalog items</p>
+                        </div>
+                        <div class="controls-row" style="margin-bottom: 0;">
+                            <input type="text" id="inventory-search" class="input-field" style="width: 200px;" placeholder="Search catalog..." oninput="renderInventoryTable()">
+                            
+                            <select id="inventory-filter-status" class="select-dropdown" onchange="renderInventoryTable()">
+                                <option value="all">All Statuses</option>
+                                <option value="in-stock">In Stock</option>
+                                <option value="low-stock">Low Stock Alerts</option>
+                                <option value="out-of-stock">Out of Stock</option>
+                            </select>
+
+                            <select id="inventory-filter-front" class="select-dropdown" onchange="renderInventoryTable()" style="display: none;">
+                                <option value="all">All Departments</option>
+                                <option value="uniforms">Uniforms Front</option>
+                                <option value="utensils">Utensils Front</option>
+                            </select>
+
+                            <button id="btn-add-inventory" class="btn-primary uniforms-btn-submit" onclick="openInventoryModal()" style="width: auto; padding: 10px 16px;">
+                                <i data-lucide="plus"></i> Add Item
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="table-wrapper">
+                        <table class="data-table" id="inventory-table">
+                            <thead>
+                                <tr>
+                                    <th>Product ID</th>
+                                    <th>Product Name</th>
+                                    <th>Department</th>
+                                    <th>Stock Level</th>
+                                    <th>Threshold Alert</th>
+                                    <th>Retail Price</th>
+                                    <th>Unit Cost</th>
+                                    <th>Inventory Status</th>
+                                    <th style="text-align: right;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventory-table-body">
+                                <!-- Populated dynamically -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: RECORD SALES (STAFF ONLY) -->
+            <section id="tab-staff-sales" class="tab-panel">
+                <div class="grid-3" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+                    <!-- New Sale Logging Form -->
+                    <div class="glass-panel">
+                        <h3 class="chart-title" style="margin-bottom: 16px;">New Sales Order</h3>
+                        
+                        <form id="record-sale-form" onsubmit="handleRecordSale(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label for="sale-product-select">Select Catalog Item</label>
+                                <select id="sale-product-select" class="select-dropdown" onchange="updateSalePriceDetails()" required>
+                                    <!-- Options filled dynamically -->
+                                </select>
+                            </div>
+
+                            <div class="grid-2" style="gap: 12px;">
+                                <div class="form-group">
+                                    <label for="sale-quantity">Quantity Sold</label>
+                                    <input type="number" id="sale-quantity" class="input-field" min="1" value="1" oninput="updateSalePriceDetails()" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="sale-discount">Discount (KSh)</label>
+                                    <input type="number" id="sale-discount" class="input-field" min="0" value="0" oninput="updateSalePriceDetails()">
+                                </div>
+                            </div>
+
+                            <!-- Pricing computation block -->
+                            <div class="glass-panel" style="background: rgba(0,0,0,0.2); padding: 16px; border-radius: 8px;">
+                                <div class="flex-row-center" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">
+                                    <span>Stock Available:</span>
+                                    <span id="sale-avail-stock" class="badge badge-success">0 units</span>
+                                </div>
+                                <div class="flex-row-center" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 6px;">
+                                    <span>Unit retail price:</span>
+                                    <span id="sale-unit-retail">$0.00</span>
+                                </div>
+                                <div class="flex-row-center" style="font-weight: 600; font-size: 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px; margin-top: 4px;">
+                                    <span>Order Total:</span>
+                                    <span id="sale-calculated-total" style="color: var(--accent-uniforms);">$0.00</span>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btn-submit-sale" class="btn-primary uniforms-btn-submit" style="margin-top: 8px;">
+                                <i data-lucide="shopping-cart"></i> Finalize checkout
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Daily Sales Log -->
+                    <div class="glass-panel">
+                        <div class="flex-row-center" style="margin-bottom: 20px;">
+                            <div>
+                                <h3 class="chart-title">Daily Sales Logs</h3>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem;">Recorded transactions for today</p>
+                            </div>
+                            <div class="badge badge-success" id="staff-daily-revenue-badge" style="padding: 10px 16px; font-size: 0.9rem;">
+                                Daily Revenue: $0.00
+                            </div>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Receipt ID</th>
+                                        <th>Date & Time</th>
+                                        <th>Product Name</th>
+                                        <th>Qty Sold</th>
+                                        <th>Discount</th>
+                                        <th>Subtotal</th>
+                                        <th>Gross Profit</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="staff-sales-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: EXPENSES TRACKER (ALICE ONLY) -->
+            <section id="tab-alice-expenses" class="tab-panel">
+                <div class="grid-3" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+                    <!-- Record Expense Form -->
+                    <div class="glass-panel">
+                        <h3 class="chart-title" style="margin-bottom: 16px;">Record Business Expense</h3>
+                        
+                        <form id="record-expense-form" onsubmit="handleRecordExpense(event)" style="display: flex; flex-direction: column; gap: 16px;">
+                            <div class="form-group">
+                                <label for="expense-title">Expense Title / Description</label>
+                                <input type="text" id="expense-title" class="input-field" placeholder="e.g. Rent Payment, Utensils Batch Purchase" required>
+                            </div>
+
+                            <div class="grid-2" style="gap: 12px;">
+                                <div class="form-group">
+                                    <label for="expense-amount">Amount Incurred ($)</label>
+                                    <input type="number" id="expense-amount" class="input-field" min="0.01" step="0.01" required>
+                                </div>
+                                <div class="form-group">
+                                    <label for="expense-date">Transaction Date</label>
+                                    <input type="date" id="expense-date" class="input-field" required>
+                                </div>
+                            </div>
+
+                            <div class="grid-2" style="gap: 12px;">
+                                <div class="form-group">
+                                    <label for="expense-category">Expense Category</label>
+                                    <select id="expense-category" class="select-dropdown" required>
+                                        <option value="Cost of Goods Sold">Cost of Goods (Inventory)</option>
+                                        <option value="Rent">Rent & Shop Space</option>
+                                        <option value="Utilities">Utilities (Water, Power)</option>
+                                        <option value="Wages">Employee Wages</option>
+                                        <option value="Marketing">Advertising & Marketing</option>
+                                        <option value="Logistics">Shipping & Logistics</option>
+                                        <option value="Other">Miscellaneous Expenses</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="expense-front">Affected Business</label>
+                                    <select id="expense-front" class="select-dropdown" required>
+                                        <option value="uniforms">Baraka Uniforms</option>
+                                        <option value="utensils">Baraka Utensils</option>
+                                        <option value="shared">Shared / Combined</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="btn-primary alice-btn-submit" style="margin-top: 8px;">
+                                <i data-lucide="plus"></i> Record Expense
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Expense Ledger -->
+                    <div class="glass-panel">
+                        <div class="flex-row-center" style="margin-bottom: 20px;">
+                            <div>
+                                <h3 class="chart-title">Expense Ledger</h3>
+                                <p style="color: var(--text-secondary); font-size: 0.85rem;">Master record of business operations spendings</p>
+                            </div>
+                            <select id="expense-filter-front" class="select-dropdown" onchange="renderExpenseLedgerTable()">
+                                <option value="all">All Departments</option>
+                                <option value="uniforms">Baraka Uniforms</option>
+                                <option value="utensils">Baraka Utensils</option>
+                                <option value="shared">Shared / General</option>
+                            </select>
+                        </div>
+
+                        <div class="table-wrapper">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Description</th>
+                                        <th>Department</th>
+                                        <th>Category</th>
+                                        <th style="text-align: right;">Amount</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expense-table-body">
+                                    <!-- Populated dynamically -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 5: PROFIT & LOSS (ALICE ONLY) -->
+            <section id="tab-alice-pl" class="tab-panel">
+                <div class="glass-panel" style="max-width: 800px; margin: 0 auto;">
+                    <div class="flex-row-center" style="margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 16px; flex-wrap: wrap; gap: 16px;">
+                        <div>
+                            <h3 class="chart-title">Profit & Loss Statement</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">Consolidated account statement for Baraka enterprises</p>
+                        </div>
+                        <div class="flex-row-center" style="gap: 12px; margin-bottom: 0;">
+                            <select id="pl-preset-filter" class="select-dropdown" onchange="applyPLPreset()">
+                                <option value="ytd">Year to Date (YTD)</option>
+                                <option value="this-month">This Month (June 2026)</option>
+                                <option value="last-month">Last Month (May 2026)</option>
+                                <option value="custom">Custom Date Range</option>
+                            </select>
+                            <div id="pl-custom-dates" style="display: none; align-items: center; gap: 8px;">
+                                <input type="date" id="pl-start-date" class="input-field" style="width: 130px; padding: 6px 10px; font-size: 0.85rem;" onchange="generateProfitLossStatement()">
+                                <span style="font-size: 0.85rem;">to</span>
+                                <input type="date" id="pl-end-date" class="input-field" style="width: 130px; padding: 6px 10px; font-size: 0.85rem;" onchange="generateProfitLossStatement()">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pl-container" id="pl-statement-content">
+                        <!-- Generated dynamically by JS -->
+                    </div>
+
+                    <div style="margin-top: 32px; display: flex; justify-content: flex-end; gap: 12px;">
+                        <button class="btn-secondary" onclick="window.print()">
+                            <i data-lucide="printer"></i> Print Statement
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 6: PEAK SEASON PREPARATIONS (ALICE ONLY) -->
+            <section id="tab-alice-peak" class="tab-panel">
+                <div class="grid-3" style="grid-template-columns: 2fr 1fr; gap: 24px;">
+                    <!-- Planner Board -->
+                    <div class="glass-panel" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div>
+                            <h3 class="chart-title">Peak Season Operations Planner</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.85rem;">Organize stock levels and schedule preparations for high-demand quarters</p>
+                        </div>
+
+                        <!-- Peak timelines summary -->
+                        <div class="grid-2">
+                            <div class="glass-panel" style="background: rgba(99, 102, 241, 0.05); border-color: rgba(99,102,241,0.2);">
+                                <div class="flex-row-center">
+                                    <h4 style="color: #a5b4fc; font-weight: 600; font-size: 0.95rem;">Baraka Uniforms Peaks</h4>
+                                    <span class="season-badge">Back-to-School</span>
+                                </div>
+                                <p style="font-size: 0.85rem; margin-top: 8px; color: var(--text-secondary);">
+                                    Primary peak occurrences are in <strong>January & May</strong>. Higher demands on uniforms, school bags, and accessories.
+                                </p>
+                                <div class="flex-row-center" style="margin-top: 12px; font-size: 0.8rem;">
+                                    <span>Target Multiplier:</span>
+                                    <strong style="color: var(--accent-uniforms); font-size: 1rem;" id="peak-multiplier-uniforms-val">1.5x</strong>
+                                </div>
+                            </div>
+
+                            <div class="glass-panel" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245,158,11,0.2);">
+                                <div class="flex-row-center">
+                                    <h4 style="color: #fcd34d; font-weight: 600; font-size: 0.95rem;">Baraka Utensils Peaks</h4>
+                                    <span class="season-badge utensils">Holiday/Festive</span>
+                                </div>
+                                <p style="font-size: 0.85rem; margin-top: 8px; color: var(--text-secondary);">
+                                    Primary peak occurrences are in <strong>November & December</strong>. High demands on kitchenware sets, holiday hosting items, and gifts.
+                                </p>
+                                <div class="flex-row-center" style="margin-top: 12px; font-size: 0.8rem;">
+                                    <span>Target Multiplier:</span>
+                                    <strong style="color: var(--accent-utensils); font-size: 1rem;" id="peak-multiplier-utensils-val">1.8x</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Add action item to checklist -->
+                        <form id="add-checklist-form" onsubmit="handleAddChecklistItem(event)" class="flex-row-center" style="gap: 12px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 16px;">
+                            <input type="text" id="new-todo-text" class="input-field" placeholder="Add preparation checklist item..." required>
+                            <select id="new-todo-front" class="select-dropdown" style="width: auto;">
+                                <option value="uniforms">Uniforms Front</option>
+                                <option value="utensils">Utensils Front</option>
+                                <option value="shared">Shared/Alice</option>
+                            </select>
+                            <button type="submit" class="btn-primary alice-btn-submit" style="width: auto; padding: 12px 20px;">
+                                <i data-lucide="plus"></i> Add
+                            </button>
+                        </form>
+
+                        <!-- Preparation checklist items list -->
+                        <div>
+                            <h4 style="font-size: 0.95rem; font-weight: 600; margin-bottom: 12px;">Active Checklist Tasks</h4>
+                            <div id="peak-prep-checklist-container">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Peak Analysis and target setup panel -->
+                    <div class="glass-panel" style="display: flex; flex-direction: column; gap: 20px;">
+                        <h3 class="chart-title">Season Target Modifiers</h3>
+                        
+                        <div class="form-group">
+                            <label for="multiplier-uniforms-input">Uniforms Stock Multiplier</label>
+                            <input type="number" id="multiplier-uniforms-input" class="input-field" min="1.0" max="5.0" step="0.1" value="1.5" onchange="adjustPeakMultipliers()">
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Increases temporary restocking safety-stock margins during high season.</p>
+                        </div>
+
+                        <div class="form-group" style="margin-top: 10px;">
+                            <label for="multiplier-utensils-input">Utensils Stock Multiplier</label>
+                            <input type="number" id="multiplier-utensils-input" class="input-field" min="1.0" max="5.0" step="0.1" value="1.8" onchange="adjustPeakMultipliers()">
+                            <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">Boosts inventory thresholds during holidays to prevent stockouts.</p>
+                        </div>
+
+                        <!-- Circular Progress Meter for Readiness -->
+                        <div class="glass-panel" style="text-align: center; background: rgba(0,0,0,0.15); margin-top: 16px;">
+                            <h4 style="font-size: 0.9rem; font-weight: 600; margin-bottom: 8px;">Peak Readiness Index</h4>
+                            
+                            <div style="position: relative; width: 120px; height: 120px; margin: 16px auto; display: flex; align-items: center; justify-content: center;">
+                                <svg width="100" height="100" viewBox="0 0 100 100">
+                                    <circle cx="50" cy="50" r="40" stroke="rgba(255,255,255,0.05)" stroke-width="8" fill="transparent"/>
+                                    <circle id="readiness-progress-ring" cx="50" cy="50" r="40" stroke="var(--accent-alice)" stroke-width="8" fill="transparent" stroke-dasharray="251.2" stroke-dashoffset="125.6" stroke-linecap="round" style="transition: stroke-dashoffset 0.4s ease;"/>
+                                </svg>
+                                <span style="position: absolute; font-size: 1.4rem; font-weight: 700; color: #fff;" id="readiness-percent-val">50%</span>
+                            </div>
+                            
+                            <p style="font-size: 0.75rem; color: var(--text-secondary);" id="readiness-summary-desc">
+                                Tasks completed: 0 of 0 items
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 3. MODAL COMPONENT SYSTEM -->
+    <!-- Inventory Add/Edit Modal -->
+    <div id="inventory-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="inventory-modal-title">Add Stock Item</h3>
+                <button class="modal-close" onclick="closeInventoryModal()">&times;</button>
+            </div>
+            <form id="inventory-modal-form" onsubmit="handleSaveInventory(event)">
+                <input type="hidden" id="inventory-modal-id">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="inv-name">Product Name</label>
+                        <input type="text" id="inv-name" class="input-field" placeholder="e.g. Navy Blue Blazer (Medium), Non-Stick Frying Pan" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="inv-images">Product Images (Multiple)</label>
+                        <input type="file" id="inv-images" class="input-field" accept="image/*" multiple>
+                        <div id="inv-images-preview" style="margin-top: 10px; display: flex; gap: 10px; flex-wrap: wrap;"></div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="inv-front">Department front</label>
+                            <select id="inv-front" class="select-dropdown" required>
+                                <option value="uniforms">Baraka Uniforms</option>
+                                <option value="utensils">Baraka Utensils</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="inv-sku">Product SKU</label>
+                            <input type="text" id="inv-sku" class="input-field" placeholder="e.g. UNIF-BLZ-M" required>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="inv-qty">Starting Quantity</label>
+                            <input type="number" id="inv-qty" class="input-field" min="0" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="inv-threshold">Low-Stock Alert Level</label>
+                            <input type="number" id="inv-threshold" class="input-field" min="1" value="10" required>
+                        </div>
+                    </div>
+
+                    <div class="grid-2">
+                        <div class="form-group">
+                            <label for="inv-retail">Retail Selling Price (KSh)</label>
+                            <input type="number" id="inv-retail" class="input-field" min="0.01" step="0.01" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="inv-cost">Wholesale Unit Cost (KSh)</label>
+                            <input type="number" id="inv-cost" class="input-field" min="0.01" step="0.01" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeInventoryModal()">Cancel</button>
+                    <button type="submit" class="btn-primary uniforms-btn-submit" id="btn-save-inventory">Save Item</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Script loading -->
+    <script src="app.js?v=102"></script>
+</body>
+</html>
